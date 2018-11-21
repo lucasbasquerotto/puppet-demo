@@ -10,7 +10,7 @@ INTERNAL_DOMAIN_NAME="devdomain.tk"
 
 # Name of the user to create and grant sudo privileges
 ## USERNAME=sammy
-USERNAME=master
+USERNAME=main
 
 # Password of the user to create and grant sudo privileges
 PASSWORD="abc123"
@@ -153,13 +153,18 @@ echo "Main logic finished" >> "/home/$USERNAME/setup.log"
 
 echo "Defining VPN DNS..." >> "/home/$USERNAME/setup.log"
 
+# apt install -y openresolv
+apt install -y resolvconf
+
 touch /etc/resolvconf/resolv.conf.d/head
+# touch /etc/resolv.conf
 
 { 
 	echo "search $INTERNAL_DOMAIN_NAME"
 	echo "nameserver 8.8.8.8"
 	echo "nameserver 8.8.4.4"
 } >> /etc/resolvconf/resolv.conf.d/head
+# } >> /etc/resolv.conf
 
 resolvconf -u
 
@@ -168,6 +173,8 @@ echo "VPN DNS Defined" >> "/home/$USERNAME/setup.log"
 ########################
 ###       NTP        ###
 ########################
+
+echo "NTP Server Started" >> "/home/$USERNAME/setup.log"
 
 timedatectl set-timezone America/Sao_Paulo
 
@@ -184,21 +191,33 @@ apt-get -y install ntp
 
 service ntp restart
 
+echo "NTP Server Finished" >> "/home/$USERNAME/setup.log"
+
 ########################
 ###      PUPPET      ###
 ########################
 
-cd ~ && wget https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb
-dpkg -i puppetlabs-release-pc1-trusty.deb
+echo "Puppet Server Started" >> "/home/$USERNAME/setup.log"
+
+mkdir -p /tmp/puppet/
+cd /tmp/puppet/ && wget https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb
+dpkg -i /tmp/puppet/puppetlabs-release-pc1-trusty.deb
+rm -rf /tmp/puppet
 apt-get update
 
 apt-get -y install puppetserver
 
-sed -i "s/JAVA_ARGS=.*/JAVA_ARGS=\"-Xms1g -Xmx1g -XX:MaxPermSize=256m\"/g" /etc/default/puppetserver
+sed -i "s/JAVA_ARGS=.*/JAVA_ARGS=\"-Xms512m -Xmx512m -XX:MaxPermSize=256m\"/g" /etc/default/puppetserver
+
+echo "Puppet Server Before Restart" >> "/home/$USERNAME/setup.log"
 
 service puppetserver restart
 
+echo "Puppet Server After Restart" >> "/home/$USERNAME/setup.log"
+
 /opt/puppetlabs/bin/puppet resource service puppetserver ensure=running enable=true
+
+echo "Puppet Server Finished" >> "/home/$USERNAME/setup.log"
 
 ########################
 ###      DOCKER      ###
@@ -231,48 +250,6 @@ service puppetserver restart
 # 	fi
 
 # 	echo "Docker Installed" >> "/home/$USERNAME/setup.log"
-# fi
-
-########################
-###      ANSIBLE     ###
-########################
-
-# 1- Installing Ansible
-
-# if [ "${ANSIBLE_SERVER}" = true ]; then
-# 	echo "Installing Ansible..." >> "/home/$USERNAME/setup.log"
-
-# 	apt update
-# 	apt install -y software-properties-common
-
-# 	apt-add-repository ppa:ansible/ansible -y
-
-# 	apt update
-
-# 	apt install -y ansible
-
-# 	mkdir "/home/$USERNAME/.tmp"
-	
-# 	echo "$SSH_PRIVATE" > "/home/$USERNAME/.ssh/id_rsa"
-# 	echo "$SSH_PUBLIC" > "/home/$USERNAME/.ssh/id_rsa.pub"
-
-# 	chmod 600 "/home/$USERNAME/.ssh/id_rsa"
-# 	chmod 644 "/home/$USERNAME/.ssh/id_rsa.pub"
-
-# 	chown --recursive "${USERNAME}":"${USERNAME}" "/home/$USERNAME/.ssh"
-	
-# 	echo "Ansible Installed" >> "/home/$USERNAME/setup.log"
-# fi
-
-# # 2- Configuring SSH Access to the Ansible Hosts
-
-# if [ "${ANSIBLE_HOST}" = true ]; then
-# 	echo "Preparing Ansible Host..." >> "/home/$USERNAME/setup.log"
-	
-# 	apt update
-# 	apt install -y python
-	
-# 	echo "Ansible Host Prepared" >> "/home/$USERNAME/setup.log"
 # fi
 
 ########################

@@ -5,6 +5,9 @@ set -euo pipefail
 ### SCRIPT VARIABLES ###
 ########################
 
+# Internal domain name (VPN)
+INTERNAL_DOMAIN_NAME="devdomain.tk"
+
 # Name of the user to create and grant sudo privileges
 ## USERNAME=sammy
 USERNAME=host
@@ -98,6 +101,45 @@ fi
 apt autoremove -y
 
 echo "Main logic finished" >> "/home/$USERNAME/setup.log"
+
+########################
+###     VPN DNS      ###
+########################
+
+echo "Defining VPN DNS..." >> "/home/$USERNAME/setup.log"
+
+# apt install -y openresolv
+apt install -y resolvconf
+
+touch /etc/resolvconf/resolv.conf.d/head
+# touch /etc/resolv.conf
+
+{ 
+	echo "search $INTERNAL_DOMAIN_NAME"
+	echo "nameserver 8.8.8.8"
+	echo "nameserver 8.8.4.4"
+} >> /etc/resolvconf/resolv.conf.d/head
+# } >> /etc/resolv.conf
+
+resolvconf -u
+
+echo "VPN DNS Defined" >> "/home/$USERNAME/setup.log"
+
+########################
+###   PUPPET AGENT   ###
+########################
+
+echo "Puppet Agent started" >> "/home/$USERNAME/setup.log"
+
+cd ~ && wget https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb
+dpkg -i puppetlabs-release-pc1-trusty.deb
+
+apt-get update
+apt-get install -y puppet-agent
+
+/opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=true
+
+echo "Puppet Agent finished" >> "/home/$USERNAME/setup.log"
 
 ########################
 ###      DOCKER      ###
