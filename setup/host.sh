@@ -131,11 +131,15 @@ echo "VPN DNS Defined" >> "/home/$USERNAME/setup.log"
 
 echo "Puppet Agent started" >> "/home/$USERNAME/setup.log"
 
-cd ~ && wget https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb
-dpkg -i puppetlabs-release-pc1-trusty.deb
-
+mkdir -p /tmp/puppet/
+cd /tmp/puppet/ && wget https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb
+dpkg -i /tmp/puppet/puppetlabs-release-pc1-trusty.deb
+rm -rf /tmp/puppet
 apt-get update
+
 apt-get install -y puppet-agent
+
+echo "Puppet Agent after install" >> "/home/$USERNAME/setup.log"
 
 /opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=true
 
